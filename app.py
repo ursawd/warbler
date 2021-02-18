@@ -118,7 +118,7 @@ def login():
 def logout():
     """Handle logout of user."""
 
-    # IMPLEMENT THIS
+    # IMPLEMENT THIS  #! Done
     session.pop("curr_user")
     flash(f"You have been successfully logged out", "success")
     return redirect("/login")
@@ -222,6 +222,9 @@ def profile():
     """Update profile for current user."""
 
     # IMPLEMENT THIS
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
 
 
 ##############################################################################
