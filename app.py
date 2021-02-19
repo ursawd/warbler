@@ -5,7 +5,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, UserEditForm, LoginForm, MessageForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Follows, Likes
 
 CURR_USER_KEY = "curr_user"
 
@@ -54,6 +54,7 @@ def do_logout():
 
     if CURR_USER_KEY in session:
         del session[CURR_USER_KEY]
+    g.user = none
 
 
 ##############################################################################
@@ -118,7 +119,6 @@ def login():
 def logout():
     """Handle logout of user."""
 
-    # IMPLEMENT THIS  #! Done
     session.pop("curr_user")
     flash(f"You have been successfully logged out", "success")
     return redirect("/login")
@@ -221,7 +221,7 @@ def stop_following(follow_id):
 def profile():
     """Update profile for current user."""
 
-    # todo - in progress IMPLEMENT THIS
+    #  IMPLEMENT THIS
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
@@ -335,7 +335,11 @@ def homepage():
     """
 
     if g.user:
-        messages = Message.query.order_by(Message.timestamp.desc()).limit(100).all()
+        # the id out of the list of users available through "following" relationship
+        # in User model.
+        ids = [user.id for user in g.user.following] + [g.user.id]
+        # Filter (return) all messages that have ids in the ""following" id list
+        messages = Message.query.filter(Message.user_id.in_(ids)).order_by(Message.timestamp.desc()).limit(100).all()
 
         return render_template("home.html", messages=messages)
 
