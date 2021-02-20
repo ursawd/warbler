@@ -185,6 +185,22 @@ def users_followers(user_id):
 
 
 ##############################################################################
+@app.route("/users/<int:user_id>/likes")
+def users_likes(user_id):
+    """ Show messages 'liked' """
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    user = User.query.get_or_404(user_id)
+    # join returns associated User record. Used to build list of likes in likes.html
+    liked_msgs = Message.query.filter(Likes.user_id == user.id, Likes.message_id == Message.id).join(User).all()
+
+    return render_template("users/likes.html", user=user, messages=liked_msgs)
+
+
+##############################################################################
 @app.route("/users/follow/<int:follow_id>", methods=["POST"])
 def add_follow(follow_id):
     """Add a follow for the currently-logged-in user."""
@@ -271,6 +287,37 @@ def delete_user():
 
 
 ##############################################################################
+# Likes routes:
+
+
+@app.route("/users/add_like/<int:message_id>", methods=["POST"])
+def add_like(message_id):
+    """ Add like to "likes" table"""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+    # query for record in "likes" table that matches user id and message id of
+    # tweet the user just clicked on the thumbs up icon. if record found returns
+    # that record, if record not found returns None.
+    like_rec_test = Likes.query.filter(Likes.user_id == g.user.id, Likes.message_id == message_id).first()
+    # if record found, user clicked on icon for messaged already "liked", therefore
+    # user wants to "unlike" message so remove record from likes table. If none, this
+    # is a new "like"
+    if like_rec_test:
+        db.session.delete(like_rec_test)
+        db.session.commit()
+        return redirect("/")
+    # if matching record not found in likes table create new
+    # entry in likes table
+    like = Likes(user_id=g.user.id, message_id=message_id)
+    db.session.add(like)
+    db.session.commit()
+
+    return redirect("/")
+
+
+##############################################################################
 # Messages routes:
 
 
@@ -333,15 +380,17 @@ def homepage():
     - anon users: no messages
     - logged in: 100 most recent messages of followed_users
     """
-
     if g.user:
         # the id out of the list of users available through "following" relationship
         # in User model.
         ids = [user.id for user in g.user.following] + [g.user.id]
         # Filter (return) all messages that have ids in the ""following" id list
         messages = Message.query.filter(Message.user_id.in_(ids)).order_by(Message.timestamp.desc()).limit(100).all()
-
-        return render_template("home.html", messages=messages)
+        # convert to list of message id's. "likes" is list of messages.
+        # msg is a single message in that list. msg.id is the message .
+        # if statement filter out crrent user from list
+        msglist = [msg.id for msg in g.user.likes if msg.user_id != g.user.id]
+        return render_template("home.html", messages=messages, likes=msglist)
 
     else:
         return render_template("home-anon.html")
