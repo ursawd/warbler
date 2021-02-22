@@ -233,6 +233,22 @@ def stop_following(follow_id):
 
 
 ##############################################################################
+##############################################################################
+# Deco
+# def check_guser(func):
+#     def wrapper():
+#         breakpoint()
+#         if not g.user:
+#             flash("Access unauthorized.", "danger")
+#             return redirect("/")
+#         func()
+#         return wrapper
+
+
+##############################################################################
+##############################################################################
+
+
 @app.route("/users/profile", methods=["GET", "POST"])
 def profile():
     """Update profile for current user."""

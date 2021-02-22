@@ -15,7 +15,7 @@ from models import db, connect_db, Message, User
 # before we import our app, since that will have already
 # connected to the database
 
-os.environ['DATABASE_URL'] = "postgresql:///warbler-test"
+os.environ["DATABASE_URL"] = "postgresql:///warbler-test"
 
 
 # Now we can import app
@@ -30,7 +30,7 @@ db.create_all()
 
 # Don't have WTForms use CSRF at all, since it's a pain to test
 
-app.config['WTF_CSRF_ENABLED'] = False
+app.config["WTF_CSRF_ENABLED"] = False
 
 
 class MessageViewTestCase(TestCase):
@@ -44,15 +44,12 @@ class MessageViewTestCase(TestCase):
 
         self.client = app.test_client()
 
-        self.testuser = User.signup(username="testuser",
-                                    email="test@test.com",
-                                    password="testuser",
-                                    image_url=None)
+        self.testuser = User.signup(username="testuser", email="test@test.com", password="testuser", image_url=None)
 
         db.session.commit()
 
     def test_add_message(self):
-        """Can use add a message?"""
+        """Can user add a message?"""
 
         # Since we need to change the session to mimic logging in,
         # we need to use the changing-session trick:
@@ -68,6 +65,63 @@ class MessageViewTestCase(TestCase):
 
             # Make sure it redirects
             self.assertEqual(resp.status_code, 302)
-
+            # Make sure entry is in messages table
             msg = Message.query.one()
             self.assertEqual(msg.text, "Hello")
+            # Check message attributed to proper user
+            self.assertEqual(msg.user_id, self.testuser.id)
+            # Insure message / user relationship point to same user
+            self.assertEqual(msg.user.id, self.testuser.id)
+
+    def test_show_message(self):
+        """Can show a message?"""
+
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+            # Now, that session setting is saved, so we can have
+            # the rest of ours test
+
+            # add new message
+            resp = c.post("/messages/new", data={"text": "Hello"})
+
+            # Get message from table
+            msg = Message.query.one()
+
+            # show message
+            resp = c.get(f"/messages/{msg.id}")
+            html = resp.get_data(as_text=True)
+            # Make sure it works
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("Hello", html)
+
+    # ###############################################################
+
+    def test_delete_message(self):
+        """Can delete a message?"""
+
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+            # Now, that session setting is saved, so we can have
+            # the rest of ours test
+
+            # add new message
+            resp = c.post("/messages/new", data={"text": "Hello"})
+
+            # Get message from table
+            msg = Message.query.one()
+
+            # show message
+            resp = c.post(f"/messages/{msg.id}/delete")
+
+            # Make sure it works
+            self.assertEqual(resp.status_code, 302)
