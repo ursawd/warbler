@@ -48,18 +48,12 @@ class UserViewTestCase(TestCase):
 
         db.session.commit()
 
-    def test_logout_user(self):
-        """Can user logout?"""
-
-        # Since we need to change the session to mimic logging in,
-        # we need to use the changing-session trick:
+    def test_users(self):
+        """Can display users?"""
 
         with self.client as c:
-            with c.session_transaction() as sess:
-                sess[CURR_USER_KEY] = self.testuser.id
 
-            # Now, that session setting is saved, so we can have
-            # the rest of ours test
-            resp = c.get("/logout")
-            breakpoint()
-            i = 5
+            resp = c.get("/users")
+            html = resp.get_data(as_text=True)
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn(self.testuser.username, html)

@@ -44,14 +44,25 @@ class MessageModelTestCase(TestCase):
 
         self.client = app.test_client()
 
+        self.testuser = User.signup(username="testuser", email="test@test.com", password="testuser", image_url=None)
+
+        db.session.commit()
+
     def test_message_model(self):
         """Does basic message model work?"""
 
-        msg = Message(text="message text", user_id=100)
+        # Create test user
+        msg = Message(text="message text", user_id=self.testuser.id)
         db.session.add(msg)
-        # try:
-        #     db.session.commit()
-        # except exc.IntegrityError as e:
-        #     print(">>>>>>>>>>", e.__class__, flush=True)
+        db.session.commit()
 
-        self.assertRaises(exc.IntegrityError, db.session.commit())
+        # Retrieve all messages from table
+        msg = Message.query.all()
+        # should be only one message
+        self.assertEqual(len(msg), 1)
+        # Retrieve only message
+        msg = Message.query.one()
+        # Check text corret
+        self.assertEqual(msg.text, "message text")
+        # Check user_id correct
+        self.assertEqual(msg.user_id, self.testuser.id)

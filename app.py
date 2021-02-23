@@ -23,6 +23,13 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "it's a secret")
 # toolbar = DebugToolbarExtension(app)
 
 connect_db(app)
+##############################################################################
+#
+
+
+@app.errorhandler(404)
+def not_found(error):
+    return render_template("404.html")
 
 
 ##############################################################################
@@ -234,7 +241,7 @@ def stop_following(follow_id):
 
 ##############################################################################
 ##############################################################################
-# Deco
+#
 # def check_guser(func):
 #     def wrapper():
 #         breakpoint()
